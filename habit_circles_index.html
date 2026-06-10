@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Life Loops</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fbfaf7;
+      --ink: #1d1d1f;
+      --muted: #75716b;
+      --line: #ebe5dc;
+      --card: #ffffff;
+      --danger: #d84a3a;
+      --shadow: 0 18px 45px rgba(40, 33, 25, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #fff5df 0, transparent 34%), var(--bg);
+      color: var(--ink);
+      font-family: Inter, system-ui, sans-serif;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 18px 64px; }
+    header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 28px; }
+    h1 { font-family: "Instrument Serif", serif; font-size: clamp(48px, 8vw, 84px); line-height: .9; margin: 0; font-weight: 400; letter-spacing: -0.04em; }
+    .sub { margin: 12px 0 0; color: var(--muted); font-size: 15px; max-width: 560px; }
+    button, input, select { font: inherit; }
+    .add-btn, .save-btn {
+      border: 0; border-radius: 999px; padding: 13px 18px; background: #1d1d1f; color: white; cursor: pointer; font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,.13);
+    }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .chip { border: 1px solid var(--line); background: rgba(255,255,255,.75); padding: 9px 12px; border-radius: 999px; color: var(--muted); font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+    .card { background: rgba(255,255,255,.84); border: 1px solid var(--line); border-radius: 28px; padding: 18px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .card.overdue { animation: blink 1.1s infinite; border-color: rgba(216,74,58,.45); }
+    @keyframes blink { 0%,100% { box-shadow: var(--shadow); } 50% { box-shadow: 0 0 0 5px rgba(216,74,58,.12), var(--shadow); } }
+    .top { display: flex; justify-content: space-between; gap: 10px; align-items: start; margin-bottom: 12px; }
+    .cat { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .name { margin: 5px 0 0; font-size: 19px; line-height: 1.12; font-weight: 800; }
+    .delete { border: 0; background: transparent; color: #aaa19a; cursor: pointer; font-size: 22px; line-height: 1; }
+    .ring { width: 132px; height: 132px; margin: 12px auto; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--p) * 1%), #eee7dd 0); }
+    .ring-inner { width: 94px; height: 94px; border-radius: 50%; background: white; display: grid; place-items: center; text-align: center; border: 1px solid #f1ece4; }
+    .days { font-size: 29px; font-weight: 800; letter-spacing: -0.04em; }
+    .label { font-size: 11px; color: var(--muted); margin-top: -5px; }
+    .meta { color: var(--muted); font-size: 13px; text-align: center; min-height: 38px; }
+    .done { width: 100%; border: 0; border-radius: 18px; padding: 13px; margin-top: 14px; background: var(--accent); color: white; font-weight: 800; cursor: pointer; }
+    .modal { position: fixed; inset: 0; background: rgba(29,29,31,.25); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 18px; z-index: 10; }
+    .modal.show { display: flex; }
+    .panel { background: white; border-radius: 30px; padding: 22px; width: min(430px, 100%); box-shadow: 0 30px 80px rgba(0,0,0,.2); }
+    .panel h2 { font-family: "Instrument Serif", serif; font-size: 42px; margin: 0 0 14px; font-weight: 400; letter-spacing: -0.03em; }
+    .field { display: grid; gap: 7px; margin: 12px 0; }
+    .field label { color: var(--muted); font-size: 13px; font-weight: 700; }
+    .field input, .field select { border: 1px solid var(--line); border-radius: 16px; padding: 13px 14px; background: #fbfaf7; outline: none; }
+    .panel-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .ghost { flex: 1; border: 1px solid var(--line); border-radius: 999px; padding: 13px 18px; background: white; cursor: pointer; font-weight: 700; }
+    .save-btn { flex: 1; }
+    @media (max-width: 660px) { header { align-items: stretch; flex-direction: column; } .add-btn { width: 100%; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Life Loops</h1>
+        <p class="sub">Tiny recurring rituals. Mark them done, watch the circles refill, and catch what becomes overdue.</p>
+      </div>
+      <div class="toolbar">
+        <span class="chip" id="countChip"></span>
+        <button class="add-btn" id="openModal">+ Add loop</button>
+      </div>
+    </header>
+    <main class="grid" id="grid"></main>
+  </div>
+
+  <div class="modal" id="modal">
+    <form class="panel" id="taskForm">
+      <h2>New loop</h2>
+      <div class="field">
+        <label for="taskName">Name</label>
+        <input id="taskName" required placeholder="Hairdresser" />
+      </div>
+      <div class="field">
+        <label for="taskCategory">Category</label>
+        <select id="taskCategory">
+          <option>Health</option><option>Beauty</option><option>Home</option><option>Social</option><option>Mind</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="taskDays">Repeat every X days</label>
+        <input id="taskDays" required type="number" min="1" value="7" />
+      </div>
+      <div class="panel-actions">
+        <button class="ghost" type="button" id="closeModal">Cancel</button>
+        <button class="save-btn" type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+
+<script>
+const colors = ["#4D82F3", "#E15D44", "#17A398", "#9B6BFF", "#E2A72E", "#2E7D57", "#D94F93", "#536DFE"];
+const starter = [
+  { id: crypto.randomUUID(), name: "Hairdresser", category: "Beauty", everyDays: 30, lastDone: todayISO(-7) },
+  { id: crypto.randomUUID(), name: "Nails", category: "Beauty", everyDays: 30, lastDone: todayISO(-10) },
+  { id: crypto.randomUUID(), name: "Run 10 km", category: "Health", everyDays: 7, lastDone: todayISO(-2) },
+  { id: crypto.randomUUID(), name: "Run 5 km", category: "Health", everyDays: 7, lastDone: todayISO(-5) },
+  { id: crypto.randomUUID(), name: "Calisthenics", category: "Health", everyDays: 7, lastDone: todayISO(-8) },
+  { id: crypto.randomUUID(), name: "Stretching", category: "Health", everyDays: 3, lastDone: todayISO(-1) },
+  { id: crypto.randomUUID(), name: "Clean room", category: "Home", everyDays: 14, lastDone: todayISO(-12) },
+  { id: crypto.randomUUID(), name: "Call family", category: "Social", everyDays: 7, lastDone: todayISO(-6) },
+  { id: crypto.randomUUID(), name: "Read", category: "Mind", everyDays: 7, lastDone: todayISO(-3) },
+  { id: crypto.randomUUID(), name: "Sauna", category: "Health", everyDays: 14, lastDone: todayISO(-15) }
+];
+let tasks = JSON.parse(localStorage.getItem("lifeLoopsTasks")) || starter;
+
+function todayISO(offset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0,10);
+}
+function daysBetween(a, b) {
+  const ms = new Date(b + "T00:00:00") - new Date(a + "T00:00:00");
+  return Math.floor(ms / 86400000);
+}
+function save() { localStorage.setItem("lifeLoopsTasks", JSON.stringify(tasks)); }
+function render() {
+  const grid = document.getElementById("grid");
+  const today = todayISO();
+  grid.innerHTML = "";
+  tasks.forEach((task, i) => {
+    const elapsed = daysBetween(task.lastDone, today);
+    const remaining = task.everyDays - elapsed;
+    const overdue = remaining < 0;
+    const pct = Math.min(100, Math.max(0, (elapsed / task.everyDays) * 100));
+    const accent = colors[i % colors.length];
+    const card = document.createElement("article");
+    card.className = `card ${overdue ? "overdue" : ""}`;
+    card.style.setProperty("--accent", overdue ? "#d84a3a" : accent);
+    card.style.setProperty("--p", pct);
+    card.innerHTML = `
+      <div class="top">
+        <div><div class="cat">${task.category}</div><div class="name">${task.name}</div></div>
+        <button class="delete" title="Delete">×</button>
+      </div>
+      <div class="ring"><div class="ring-inner"><div><div class="days">${overdue ? Math.abs(remaining) : Math.max(0, remaining)}</div><div class="label">${overdue ? "days late" : "days left"}</div></div></div></div>
+      <div class="meta">Every ${task.everyDays} days<br>Last done: ${task.lastDone}</div>
+      <button class="done">Done today</button>`;
+    card.querySelector(".done").onclick = () => { task.lastDone = todayISO(); save(); render(); };
+    card.querySelector(".delete").onclick = () => { tasks = tasks.filter(t => t.id !== task.id); save(); render(); };
+    grid.appendChild(card);
+  });
+  const overdueCount = tasks.filter(t => daysBetween(t.lastDone, today) > t.everyDays).length;
+  document.getElementById("countChip").textContent = `${tasks.length} loops · ${overdueCount} overdue`;
+}
+
+document.getElementById("openModal").onclick = () => document.getElementById("modal").classList.add("show");
+document.getElementById("closeModal").onclick = () => document.getElementById("modal").classList.remove("show");
+document.getElementById("modal").onclick = e => { if (e.target.id === "modal") e.target.classList.remove("show"); };
+document.getElementById("taskForm").onsubmit = e => {
+  e.preventDefault();
+  tasks.push({
+    id: crypto.randomUUID(),
+    name: document.getElementById("taskName").value.trim(),
+    category: document.getElementById("taskCategory").value,
+    everyDays: Number(document.getElementById("taskDays").value),
+    lastDone: todayISO()
+  });
+  save();
+  e.target.reset();
+  document.getElementById("taskDays").value = 7;
+  document.getElementById("modal").classList.remove("show");
+  render();
+};
+render();
+</script>
+</body>
+</html>
